@@ -254,6 +254,4 @@ curl -X GET "https://localhost:5001/api/users/discovery" \
 
 ---
 
-## License
 
-MIT
