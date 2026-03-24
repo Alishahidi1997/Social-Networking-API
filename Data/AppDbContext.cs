@@ -5,8 +5,8 @@ namespace API.Data;
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public DbSet<AppUser> Users { get; set; }
-    public DbSet<Photo> Photos { get; set; }
+    public DbSet<AppUser>? Users { get; set; }
+    public DbSet<Photo>? Photos { get; set; }
     public DbSet<UserLike> UserLikes { get; set; }
     public DbSet<Message> Messages { get; set; }
 
