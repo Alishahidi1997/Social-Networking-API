@@ -21,6 +21,10 @@ public class UsersController(IUserService userService) : ControllerBase
     public async Task<ActionResult<PagedResultDto<UserDto>>> GetDiscovery([FromQuery] UserParams userParams, CancellationToken ct) =>
         Ok(await userService.GetUsersForDiscoveryAsync(UserId, userParams, ct));
 
+    [HttpGet("hobbies")]
+    public async Task<ActionResult<IReadOnlyList<HobbyDto>>> GetHobbies(CancellationToken ct) =>
+        Ok(await userService.GetHobbyOptionsAsync(ct));
+
     [Authorize(Roles = "Admin")]
     [HttpGet("all")]
     public async Task<ActionResult<IEnumerable<UserDto>>> GetAllUsers(CancellationToken ct) =>

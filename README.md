@@ -19,6 +19,7 @@ A RESTful dating app backend built with .NET. Supports registration, authenticat
 - **Looking For** – Preferred gender
 - **Location** – City and country
 - **Date of birth** – Used for age calculation and filtering
+- **Hobbies** – Multi-select from predefined options (no free text)
 
 ### Photos
 - Upload profile pictures (jpg, jpeg, png, gif, webp)
@@ -142,7 +143,8 @@ Content-Type: application/json
   "bio": "Love hiking and coffee",
   "knownAs": "John",
   "city": "New York",
-  "country": "USA"
+  "country": "USA",
+  "hobbyIds": [1, 5, 10]
 }
 ```
 
@@ -184,10 +186,11 @@ Content-Type: application/json
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | DELETE | `/account` | Delete currently logged-in account |
+| GET | `/users/hobbies` | Get predefined hobby options for selection |
 | GET | `/users/discovery` | Discovery feed (query: `gender`, `minAge`, `maxAge`, `pageNumber`, `pageSize`, `orderBy`) |
 | GET | `/users/all` | **Admin only.** List all users (same shape as profile DTOs; not paginated). Requires JWT with role `Admin`. |
 | GET | `/users/{username}` | Get user profile |
-| PUT | `/users` | Update own profile |
+| PUT | `/users` | Update own profile (`hobbyIds` supported) |
 | GET | `/users/matches` | Mutual matches |
 | GET | `/users/likes?predicate=liked` | Users you liked |
 | GET | `/users/likes?predicate=likedby` | Users who liked you |
@@ -293,6 +296,16 @@ curl -X POST https://localhost:5001/api/account/login \
 # Get discovery (replace TOKEN with your JWT)
 curl -X GET "https://localhost:5001/api/users/discovery" \
   -H "Authorization: Bearer TOKEN"
+
+# Get predefined hobbies to populate a multi-select UI
+curl -X GET "https://localhost:5001/api/users/hobbies" \
+  -H "Authorization: Bearer TOKEN"
+
+# Update profile with selected hobbies
+curl -X PUT "https://localhost:5001/api/users" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"hobbyIds":[1,5,10]}'
 
 # List all users (admin only; replace ADMIN_TOKEN with a JWT for an admin user)
 curl -X GET "https://localhost:5001/api/users/all" \

@@ -31,6 +31,13 @@ public class UserService(IUserRepository userRepo) : IUserService
         if (dto.DateOfBirth.HasValue) user.DateOfBirth = dto.DateOfBirth.Value;
         if (dto.City != null) user.City = dto.City;
         if (dto.Country != null) user.Country = dto.Country;
+        if (dto.HobbyIds != null)
+        {
+            var hobbies = await userRepo.GetHobbiesByIdsAsync(dto.HobbyIds, ct);
+            user.UserHobbies = hobbies
+                .Select(h => new UserHobby { AppUserId = user.Id, HobbyId = h.Id })
+                .ToList();
+        }
         user.LastActive = DateTime.UtcNow;
 
         userRepo.Update(user);
@@ -48,6 +55,12 @@ public class UserService(IUserRepository userRepo) : IUserService
     {
         var users = await userRepo.GetUsersAsync(ct);
         return users.Select(MapToUserDto).ToList();
+    }
+
+    public async Task<IReadOnlyList<HobbyDto>> GetHobbyOptionsAsync(CancellationToken ct = default)
+    {
+        var hobbies = await userRepo.GetAllHobbiesAsync(ct);
+        return hobbies.Select(h => new HobbyDto { Id = h.Id, Name = h.Name }).ToList();
     }
 
     public async Task<IEnumerable<UserDto>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
@@ -76,7 +89,12 @@ public class UserService(IUserRepository userRepo) : IUserService
         PhotoUrl = user.Photos?.FirstOrDefault(p => p.IsMain)?.Url,
         LastActive = user.LastActive,
         Created = user.Created,
-        Photos = (user.Photos ?? []).Select(p => new PhotoDto { Id = p.Id, Url = p.Url, IsMain = p.IsMain }).ToList()
+        Photos = (user.Photos ?? []).Select(p => new PhotoDto { Id = p.Id, Url = p.Url, IsMain = p.IsMain }).ToList(),
+        Hobbies = (user.UserHobbies ?? [])
+            .Where(uh => uh.Hobby != null)
+            .Select(uh => new HobbyDto { Id = uh.HobbyId, Name = uh.Hobby.Name })
+            .OrderBy(h => h.Name)
+            .ToList()
     };
 
     private static int GetAge(DateOnly dob)

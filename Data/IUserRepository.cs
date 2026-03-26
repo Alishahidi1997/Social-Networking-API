@@ -17,4 +17,6 @@ public interface IUserRepository
     Task<PagedResultDto<AppUser>> GetUsersForDiscoveryAsync(int userId, UserParams userParams, CancellationToken ct = default);
     Task<IEnumerable<AppUser>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default);
     Task<IEnumerable<AppUser>> GetMatchesAsync(int userId, CancellationToken ct = default);
+    Task<IReadOnlyList<Hobby>> GetAllHobbiesAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Hobby>> GetHobbiesByIdsAsync(IEnumerable<int> hobbyIds, CancellationToken ct = default);
 }

@@ -32,6 +32,14 @@ public class AccountService(IUserRepository userRepo, ITokenService tokenService
             Country = dto.Country
         };
 
+        if (dto.HobbyIds.Count > 0)
+        {
+            var hobbies = await userRepo.GetHobbiesByIdsAsync(dto.HobbyIds, ct);
+            user.UserHobbies = hobbies
+                .Select(h => new UserHobby { HobbyId = h.Id })
+                .ToList();
+        }
+
         userRepo.Add(user);
         if (!await userRepo.SaveAllAsync(ct))
             return null;
@@ -82,7 +90,12 @@ public class AccountService(IUserRepository userRepo, ITokenService tokenService
         PhotoUrl = photos.FirstOrDefault(p => p.IsMain)?.Url,
         LastActive = user.LastActive,
         Created = user.Created,
-        Photos = photos.Select(p => new PhotoDto { Id = p.Id, Url = p.Url, IsMain = p.IsMain }).ToList()
+        Photos = photos.Select(p => new PhotoDto { Id = p.Id, Url = p.Url, IsMain = p.IsMain }).ToList(),
+        Hobbies = (user.UserHobbies ?? [])
+            .Where(uh => uh.Hobby != null)
+            .Select(uh => new HobbyDto { Id = uh.HobbyId, Name = uh.Hobby.Name })
+            .OrderBy(h => h.Name)
+            .ToList()
         };
     }
 

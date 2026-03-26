@@ -15,4 +15,5 @@ public record UserDto
     public DateTime LastActive { get; init; }
     public DateTime Created { get; init; }
     public IReadOnlyList<PhotoDto> Photos { get; init; } = [];
+    public IReadOnlyList<HobbyDto> Hobbies { get; init; } = [];
 }

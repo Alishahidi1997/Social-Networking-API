@@ -16,11 +16,13 @@ public class UserRepository(AppDbContext context) : IUserRepository
     public async Task<IEnumerable<AppUser>> GetUsersAsync(CancellationToken ct = default) =>
         await context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .ToListAsync(ct);
 
     public async Task<AppUser?> GetUserByIdAsync(int id, CancellationToken ct = default) =>
         await context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .FirstOrDefaultAsync(u => u.Id == id, ct);
 
     public async Task<AppUser?> GetUserByUsernameAsync(string username, CancellationToken ct = default) =>
@@ -34,6 +36,7 @@ public class UserRepository(AppDbContext context) : IUserRepository
     public async Task<AppUser?> GetUserByUsernameWithPhotosAsync(string username, CancellationToken ct = default) =>
         await context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .FirstOrDefaultAsync(u => u.UserName == username, ct);
 
     public async Task<PagedResultDto<AppUser>> GetUsersForDiscoveryAsync(int userId, UserParams userParams, CancellationToken ct = default)
@@ -43,6 +46,7 @@ public class UserRepository(AppDbContext context) : IUserRepository
 
         var query = context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .Where(u => u.Id != userId)
             .Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <= maxDob);
 
@@ -74,6 +78,7 @@ public class UserRepository(AppDbContext context) : IUserRepository
     {
         var users = context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .AsQueryable();
 
         var userLikes = context.UserLikes.AsQueryable();
@@ -101,7 +106,18 @@ public class UserRepository(AppDbContext context) : IUserRepository
 
         return await context.Users
             .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .Where(u => liked.Contains(u.Id) && context.UserLikes.Any(ul => ul.SourceUserId == u.Id && ul.TargetUserId == userId))
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Hobby>> GetAllHobbiesAsync(CancellationToken ct = default) =>
+        await context.Hobbies.OrderBy(h => h.Name).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Hobby>> GetHobbiesByIdsAsync(IEnumerable<int> hobbyIds, CancellationToken ct = default)
+    {
+        var ids = hobbyIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+        return await context.Hobbies.Where(h => ids.Contains(h.Id)).ToListAsync(ct);
     }
 }

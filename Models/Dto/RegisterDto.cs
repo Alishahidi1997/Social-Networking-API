@@ -35,4 +35,6 @@ public record RegisterDto
 
     [MaxLength(100)]
     public string? Country { get; init; }
+
+    public IReadOnlyList<int> HobbyIds { get; init; } = [];
 }

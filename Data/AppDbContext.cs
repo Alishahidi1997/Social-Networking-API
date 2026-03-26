@@ -7,8 +7,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<AppUser>? Users { get; set; }
     public DbSet<Photo>? Photos { get; set; }
-    public DbSet<UserLike> UserLikes { get; set; }
-    public DbSet<Message> Messages { get; set; }
+    public DbSet<UserLike> UserLikes { get; set; } = null!;
+    public DbSet<Message> Messages { get; set; } = null!;
+    public DbSet<Hobby> Hobbies { get; set; } = null!;
+    public DbSet<UserHobby> UserHobbies { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -41,11 +43,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(m => m.RecipientId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Entity<UserHobby>()
+            .HasKey(uh => new { uh.AppUserId, uh.HobbyId });
+
+        builder.Entity<UserHobby>()
+            .HasOne(uh => uh.AppUser)
+            .WithMany(u => u.UserHobbies)
+            .HasForeignKey(uh => uh.AppUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserHobby>()
+            .HasOne(uh => uh.Hobby)
+            .WithMany(h => h.UserHobbies)
+            .HasForeignKey(uh => uh.HobbyId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Entity<AppUser>()
             .HasIndex(u => u.UserName)
             .IsUnique();
         builder.Entity<AppUser>()
             .HasIndex(u => u.Email)
             .IsUnique();
+
+        builder.Entity<Hobby>().HasData(
+            new Hobby { Id = 1, Name = "Travel" },
+            new Hobby { Id = 2, Name = "Cooking" },
+            new Hobby { Id = 3, Name = "Reading" },
+            new Hobby { Id = 4, Name = "Gaming" },
+            new Hobby { Id = 5, Name = "Music" },
+            new Hobby { Id = 6, Name = "Sports" },
+            new Hobby { Id = 7, Name = "Fitness" },
+            new Hobby { Id = 8, Name = "Photography" },
+            new Hobby { Id = 9, Name = "Movies" },
+            new Hobby { Id = 10, Name = "Hiking" }
+        );
     }
 }
