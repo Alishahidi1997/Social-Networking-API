@@ -16,6 +16,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         base.OnModelCreating(builder);
 
+        ConfigureUserLikes(builder);
+        ConfigureMessages(builder);
+        ConfigureUserHobbies(builder);
+        ConfigureUserIndexes(builder);
+
+        builder.Entity<Hobby>().HasData(
+            new Hobby { Id = 1, Name = "Travel" },
+            new Hobby { Id = 2, Name = "Cooking" },
+            new Hobby { Id = 3, Name = "Reading" },
+            new Hobby { Id = 4, Name = "Gaming" },
+            new Hobby { Id = 5, Name = "Music" },
+            new Hobby { Id = 6, Name = "Sports" },
+            new Hobby { Id = 7, Name = "Fitness" },
+            new Hobby { Id = 8, Name = "Photography" },
+            new Hobby { Id = 9, Name = "Movies" },
+            new Hobby { Id = 10, Name = "Hiking" }
+        );
+    }
+
+    private static void ConfigureUserLikes(ModelBuilder builder)
+    {
         builder.Entity<UserLike>()
             .HasKey(ul => new { ul.SourceUserId, ul.TargetUserId });
 
@@ -30,7 +51,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(u => u.LikedByUsers)
             .HasForeignKey(ul => ul.TargetUserId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
 
+    private static void ConfigureMessages(ModelBuilder builder)
+    {
         builder.Entity<Message>()
             .HasOne(m => m.Sender)
             .WithMany(u => u.MessagesSent)
@@ -42,7 +66,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(u => u.MessagesReceived)
             .HasForeignKey(m => m.RecipientId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
 
+    private static void ConfigureUserHobbies(ModelBuilder builder)
+    {
         builder.Entity<UserHobby>()
             .HasKey(uh => new { uh.AppUserId, uh.HobbyId });
 
@@ -57,25 +84,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(h => h.UserHobbies)
             .HasForeignKey(uh => uh.HobbyId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
 
+    private static void ConfigureUserIndexes(ModelBuilder builder)
+    {
         builder.Entity<AppUser>()
             .HasIndex(u => u.UserName)
             .IsUnique();
+
         builder.Entity<AppUser>()
             .HasIndex(u => u.Email)
             .IsUnique();
-
-        builder.Entity<Hobby>().HasData(
-            new Hobby { Id = 1, Name = "Travel" },
-            new Hobby { Id = 2, Name = "Cooking" },
-            new Hobby { Id = 3, Name = "Reading" },
-            new Hobby { Id = 4, Name = "Gaming" },
-            new Hobby { Id = 5, Name = "Music" },
-            new Hobby { Id = 6, Name = "Sports" },
-            new Hobby { Id = 7, Name = "Fitness" },
-            new Hobby { Id = 8, Name = "Photography" },
-            new Hobby { Id = 9, Name = "Movies" },
-            new Hobby { Id = 10, Name = "Hiking" }
-        );
     }
 }
