@@ -5,19 +5,33 @@ namespace API.Services;
 
 public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) : ILikesService
 {
-    public async Task<bool> AddLikeAsync(int sourceUserId, int targetUserId, CancellationToken ct = default)
+    private const int MaxLikesPerUtcDay = 20;
+
+    public async Task<LikeAddResult> AddLikeAsync(int sourceUserId, int targetUserId, CancellationToken ct = default)
     {
-        if (sourceUserId == targetUserId) return false;
+        if (sourceUserId == targetUserId)
+            return LikeAddResult.InvalidTarget;
 
         var targetUser = await userRepo.GetUserByIdAsync(targetUserId, ct);
-        if (targetUser == null) return false;
+        if (targetUser == null)
+            return LikeAddResult.InvalidTarget;
 
         if (await likesRepo.GetUserLikeAsync(sourceUserId, targetUserId, ct) != null)
-            return true; // Already liked
+            return LikeAddResult.AlreadyLiked;
 
-        var like = new UserLike { SourceUserId = sourceUserId, TargetUserId = targetUserId };
+        var utcDayStart = DateTime.UtcNow.Date;
+        var sentToday = await likesRepo.CountLikesSentOnUtcDayAsync(sourceUserId, utcDayStart, ct);
+        if (sentToday >= MaxLikesPerUtcDay)
+            return LikeAddResult.DailyLimitReached;
+
+        var like = new UserLike
+        {
+            SourceUserId = sourceUserId,
+            TargetUserId = targetUserId,
+            LikedAt = DateTime.UtcNow
+        };
         likesRepo.AddLike(like);
 
-        return await userRepo.SaveAllAsync(ct);
+        return await userRepo.SaveAllAsync(ct) ? LikeAddResult.Success : LikeAddResult.Failed;
     }
 }

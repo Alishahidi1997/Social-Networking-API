@@ -169,7 +169,12 @@ public static class DevDataSeeder
             var key = $"{source}:{target}";
             if (source == target || existingSet.Contains(key)) continue;
 
-            db.UserLikes.Add(new UserLike { SourceUserId = source, TargetUserId = target });
+            db.UserLikes.Add(new UserLike
+            {
+                SourceUserId = source,
+                TargetUserId = target,
+                LikedAt = DateTime.UtcNow.AddDays(-30)
+            });
             existingSet.Add(key);
             needed--;
         }
@@ -181,7 +186,12 @@ public static class DevDataSeeder
             var key = $"{source}:{target}";
             if (source == target || existingSet.Contains(key)) continue;
 
-            db.UserLikes.Add(new UserLike { SourceUserId = source, TargetUserId = target });
+            db.UserLikes.Add(new UserLike
+            {
+                SourceUserId = source,
+                TargetUserId = target,
+                LikedAt = DateTime.UtcNow.AddDays(-30)
+            });
             existingSet.Add(key);
             needed--;
         }

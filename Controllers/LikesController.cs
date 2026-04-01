@@ -15,9 +15,13 @@ public class LikesController(ILikesService likesService) : ControllerBase
     [HttpPost("{targetUserId:int}")]
     public async Task<ActionResult> LikeUser(int targetUserId, CancellationToken ct)
     {
-        if (!await likesService.AddLikeAsync(UserId, targetUserId, ct))
-            return BadRequest("Cannot like yourself or user not found");
-
-        return Ok();
+        return await likesService.AddLikeAsync(UserId, targetUserId, ct) switch
+        {
+            LikeAddResult.Success or LikeAddResult.AlreadyLiked => Ok(),
+            LikeAddResult.InvalidTarget => BadRequest("Cannot like yourself or user not found"),
+            LikeAddResult.DailyLimitReached => StatusCode(StatusCodes.Status429TooManyRequests,
+                "You can send at most 20 likes per day (UTC)."),
+            _ => BadRequest()
+        };
     }
 }
