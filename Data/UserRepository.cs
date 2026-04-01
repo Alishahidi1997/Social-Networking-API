@@ -74,27 +74,38 @@ public class UserRepository(AppDbContext context) : IUserRepository
         return new PagedResultDto<AppUser>(items, totalCount, userParams.PageNumber, userParams.PageSize);
     }
 
-    public async Task<IEnumerable<AppUser>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
+    public async Task<IReadOnlyList<LikedUserResult>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
     {
-        var users = context.Users
-            .Include(u => u.Photos)
-            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
-            .AsQueryable();
-
-        var userLikes = context.UserLikes.AsQueryable();
-
         return predicate.ToLowerInvariant() switch
         {
-            "liked" => await userLikes
-                .Where(ul => ul.SourceUserId == userId)
-                .Join(users, ul => ul.TargetUserId, u => u.Id, (_, u) => u)
-                .ToListAsync(ct),
-            "likedby" => await userLikes
-                .Where(ul => ul.TargetUserId == userId)
-                .Join(users, ul => ul.SourceUserId, u => u.Id, (_, u) => u)
-                .ToListAsync(ct),
+            "liked" => await LoadUsersILikedAsync(userId, ct),
+            "likedby" => await LoadUsersWhoLikedMeAsync(userId, ct),
             _ => []
         };
+    }
+
+    private async Task<IReadOnlyList<LikedUserResult>> LoadUsersILikedAsync(int userId, CancellationToken ct)
+    {
+        var likes = await context.UserLikes
+            .Where(ul => ul.SourceUserId == userId)
+            .Include(ul => ul.TargetPhoto)
+            .Include(ul => ul.TargetUser!).ThenInclude(u => u.Photos)
+            .Include(ul => ul.TargetUser!).ThenInclude(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
+            .ToListAsync(ct);
+
+        return likes.Select(ul => new LikedUserResult(ul.TargetUser, ul.TargetPhoto)).ToList();
+    }
+
+    private async Task<IReadOnlyList<LikedUserResult>> LoadUsersWhoLikedMeAsync(int userId, CancellationToken ct)
+    {
+        var likes = await context.UserLikes
+            .Where(ul => ul.TargetUserId == userId)
+            .Include(ul => ul.TargetPhoto)
+            .Include(ul => ul.SourceUser!).ThenInclude(u => u.Photos)
+            .Include(ul => ul.SourceUser!).ThenInclude(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
+            .ToListAsync(ct);
+
+        return likes.Select(ul => new LikedUserResult(ul.SourceUser, ul.TargetPhoto)).ToList();
     }
 
     public async Task<IEnumerable<AppUser>> GetMatchesAsync(int userId, CancellationToken ct = default)

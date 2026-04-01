@@ -64,10 +64,30 @@ public class UserService(IUserRepository userRepo) : IUserService
         return hobbies.Select(h => new HobbyDto { Id = h.Id, Name = h.Name }).ToList();
     }
 
-    public async Task<IEnumerable<UserDto>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
+    public async Task<IEnumerable<LikedMemberDto>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
     {
-        var users = await userRepo.GetLikedUsersAsync(userId, predicate, ct);
-        return users.Select(MapToUserDto);
+        var rows = await userRepo.GetLikedUsersAsync(userId, predicate, ct);
+        var peopleILiked = string.Equals(predicate, "liked", StringComparison.OrdinalIgnoreCase);
+        return rows.Select(r => new LikedMemberDto
+        {
+            Member = MapToUserDto(r.Member),
+            LikedPhoto = MapLikedPhoto(r.Member, r.LikedPhoto, peopleILiked)
+        });
+    }
+
+    /// <param name="fallbackToMemberMain">When true and no photo was stored, use the member's main photo (people I liked). When false (likedby), only return a photo if we stored one — otherwise we'd show the liker's face instead of mine.</param>
+    private static PhotoDto? MapLikedPhoto(AppUser member, Photo? fromLike, bool fallbackToMemberMain)
+    {
+        if (fromLike != null)
+            return new PhotoDto { Id = fromLike.Id, Url = fromLike.Url, IsMain = fromLike.IsMain };
+
+        if (!fallbackToMemberMain)
+            return null;
+
+        var fallback = member.Photos?.FirstOrDefault(p => p.IsMain) ?? member.Photos?.FirstOrDefault();
+        return fallback == null
+            ? null
+            : new PhotoDto { Id = fallback.Id, Url = fallback.Url, IsMain = fallback.IsMain };
     }
 
     public async Task<IEnumerable<UserDto>> GetMatchesAsync(int userId, CancellationToken ct = default)

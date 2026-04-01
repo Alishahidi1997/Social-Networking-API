@@ -156,6 +156,11 @@ public static class DevDataSeeder
         var users = await db.Users!.OrderBy(u => u.Id).Select(u => u.Id).ToListAsync(ct);
         if (users.Count < 2) return;
 
+        var allPhotos = await db.Photos!.AsNoTracking().ToListAsync(ct);
+        var photoIdByUser = allPhotos
+            .GroupBy(p => p.AppUserId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.IsMain).First().Id);
+
         var existing = await db.UserLikes
             .Select(ul => $"{ul.SourceUserId}:{ul.TargetUserId}")
             .ToListAsync(ct);
@@ -173,6 +178,7 @@ public static class DevDataSeeder
             {
                 SourceUserId = source,
                 TargetUserId = target,
+                TargetPhotoId = photoIdByUser.TryGetValue(target, out var pid) ? pid : null,
                 LikedAt = DateTime.UtcNow.AddDays(-30)
             });
             existingSet.Add(key);
@@ -190,6 +196,7 @@ public static class DevDataSeeder
             {
                 SourceUserId = source,
                 TargetUserId = target,
+                TargetPhotoId = photoIdByUser.TryGetValue(target, out var pid2) ? pid2 : null,
                 LikedAt = DateTime.UtcNow.AddDays(-30)
             });
             existingSet.Add(key);

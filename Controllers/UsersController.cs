@@ -39,7 +39,7 @@ public class UsersController(IUserService userService, IWebHostEnvironment env) 
         Ok(await userService.GetMatchesAsync(UserId, ct));
 
     [HttpGet("likes")]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetLikes([FromQuery] string predicate, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<LikedMemberDto>>> GetLikes([FromQuery] string predicate, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(predicate) || (predicate != "liked" && predicate != "likedby"))
             return BadRequest("Predicate must be 'liked' or 'likedby'");

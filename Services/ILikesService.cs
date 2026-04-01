@@ -2,5 +2,5 @@ namespace API.Services;
 
 public interface ILikesService
 {
-    Task<LikeAddResult> AddLikeAsync(int sourceUserId, int targetUserId, CancellationToken ct = default);
+    Task<LikeAddResult> AddLikeAsync(int sourceUserId, int targetUserId, int? targetPhotoId, CancellationToken ct = default);
 }

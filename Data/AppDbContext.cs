@@ -51,6 +51,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .WithMany(u => u.LikedByUsers)
             .HasForeignKey(ul => ul.TargetUserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserLike>()
+            .HasOne(ul => ul.TargetPhoto)
+            .WithMany()
+            .HasForeignKey(ul => ul.TargetPhotoId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 
     private static void ConfigureMessages(ModelBuilder builder)

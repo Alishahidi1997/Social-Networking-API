@@ -7,7 +7,7 @@ public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) 
 {
     private const int MaxLikesPerUtcDay = 20;
 
-    public async Task<LikeAddResult> AddLikeAsync(int sourceUserId, int targetUserId, CancellationToken ct = default)
+    public async Task<LikeAddResult> AddLikeAsync(int sourceUserId, int targetUserId, int? targetPhotoId, CancellationToken ct = default)
     {
         if (sourceUserId == targetUserId)
             return LikeAddResult.InvalidTarget;
@@ -19,6 +19,20 @@ public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) 
         if (await likesRepo.GetUserLikeAsync(sourceUserId, targetUserId, ct) != null)
             return LikeAddResult.AlreadyLiked;
 
+        int? storedPhotoId;
+        if (targetPhotoId.HasValue)
+        {
+            var photo = targetUser.Photos?.FirstOrDefault(p => p.Id == targetPhotoId.Value);
+            if (photo == null)
+                return LikeAddResult.InvalidPhoto;
+            storedPhotoId = photo.Id;
+        }
+        else
+        {
+            var main = targetUser.Photos?.FirstOrDefault(p => p.IsMain) ?? targetUser.Photos?.FirstOrDefault();
+            storedPhotoId = main?.Id;
+        }
+
         var utcDayStart = DateTime.UtcNow.Date;
         var sentToday = await likesRepo.CountLikesSentOnUtcDayAsync(sourceUserId, utcDayStart, ct);
         if (sentToday >= MaxLikesPerUtcDay)
@@ -28,6 +42,7 @@ public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) 
         {
             SourceUserId = sourceUserId,
             TargetUserId = targetUserId,
+            TargetPhotoId = storedPhotoId,
             LikedAt = DateTime.UtcNow
         };
         likesRepo.AddLike(like);
