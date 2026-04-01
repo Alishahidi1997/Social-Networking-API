@@ -21,6 +21,7 @@ public class LikesController(ILikesService likesService) : ControllerBase
             LikeAddResult.InvalidTarget => BadRequest("Cannot like yourself or user not found"),
             LikeAddResult.DailyLimitReached => StatusCode(StatusCodes.Status429TooManyRequests,
                 "You can send at most 20 likes per day (UTC)."),
+            LikeAddResult.Failed => BadRequest("Could not save like"),
             _ => BadRequest()
         };
     }
