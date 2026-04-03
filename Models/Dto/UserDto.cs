@@ -17,4 +17,5 @@ public record UserDto
     public DateTime Created { get; init; }
     public IReadOnlyList<PhotoDto> Photos { get; init; } = [];
     public IReadOnlyList<HobbyDto> Hobbies { get; init; } = [];
+    public SubscriptionSummaryDto? Subscription { get; init; }
 }
