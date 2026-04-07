@@ -9,7 +9,7 @@ namespace API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class UsersController(IUserService userService, IWebHostEnvironment env) : ControllerBase
+public class UsersController(IUserService userService, ISubscriptionService subscriptionService, IWebHostEnvironment env) : ControllerBase
 {
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -43,6 +43,16 @@ public class UsersController(IUserService userService, IWebHostEnvironment env) 
     {
         if (string.IsNullOrEmpty(predicate) || (predicate != "liked" && predicate != "likedby"))
             return BadRequest("Predicate must be 'liked' or 'likedby'");
+
+        if (string.Equals(predicate, "likedby", StringComparison.OrdinalIgnoreCase))
+        {
+            var summary = await subscriptionService.GetMySummaryAsync(UserId, ct);
+            if (summary is null)
+                return NotFound();
+            if (!summary.SeeWhoLikedYou)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    "Plus or Premium required to see who liked you.");
+        }
 
         return Ok(await userService.GetLikedUsersAsync(UserId, predicate, ct));
     }

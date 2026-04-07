@@ -21,11 +21,13 @@ Swagger:
 - Register / login with JWT
 - Profile update (bio, knownAs, city, country, jobTitle, hobbies)
 - Discovery with filters (age, gender, paging, order)
-- Likes + matches (max **20 new likes per UTC day** per user; **429** when over the limit)
+- **Subscriptions** — Free / Plus / Premium (`GET /api/subscriptions/plans`). Plus & Premium: **unlimited likes**; Plus & Premium: **`GET /api/users/likes?predicate=likedby`**; Premium: stronger **discovery ordering**. `POST /api/subscriptions/subscribe` sets plan + end date (demo — no payment).
+- Likes + matches (Free: max **20 new likes per UTC day**, **429** when over; paid tiers with unlimited likes skip the cap)
 - Each like can record **which of the target’s photos** was shown (`photoId` in body, or defaults to their main photo)
 - Messages (inbox/outbox/unread, thread, read, delete)
 - Photo upload / delete / set-main
 - Account delete
+- `UserDto.subscription` on login/register/profile-style responses — plan name, feature flags, paid expiry
 
 ## Config
 
@@ -44,6 +46,7 @@ Admin notes:
 Public:
 - `POST /api/account/register`
 - `POST /api/account/login`
+- `GET /api/subscriptions/plans` — catalog (prices + feature flags)
 
 Protected (Bearer token required):
 - `GET /api/users/discovery`
@@ -51,7 +54,9 @@ Protected (Bearer token required):
 - `PUT /api/users`
 - `GET /api/users/hobbies`
 - `GET /api/users/matches`
-- `GET /api/users/likes?predicate=liked|likedby` — returns `{ member, likedPhoto }[]` (`likedPhoto` is the target’s photo for that like; for `likedby` it’s **your** photo they saw, or `null` if unknown)
+- `GET /api/users/likes?predicate=liked|likedby` — returns `{ member, likedPhoto }[]`; **`likedby` needs Plus/Premium** (403 Free). `predicate=liked` is allowed on Free.
+- `GET /api/subscriptions/me` — current tier + expiry + feature flags
+- `POST /api/subscriptions/subscribe` — body `{ "planId": 2|3, "durationDays": 30 }` (extends from current end if still active)
 - `GET /api/users/all` (rules above)
 - `POST /api/likes/{targetUserId}` — optional body `{ "photoId": <int> }` (must be one of that user’s photos); empty body OK
 - `POST /api/messages`

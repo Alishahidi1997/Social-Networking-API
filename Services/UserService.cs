@@ -116,7 +116,8 @@ public class UserService(IUserRepository userRepo) : IUserService
             .Where(uh => uh.Hobby != null)
             .Select(uh => new HobbyDto { Id = uh.HobbyId, Name = uh.Hobby.Name })
             .OrderBy(h => h.Name)
-            .ToList()
+            .ToList(),
+        Subscription = SubscriptionEntitlements.ToSummary(user)
     };
 
     private static int GetAge(DateOnly dob)
