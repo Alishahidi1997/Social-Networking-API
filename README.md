@@ -1,64 +1,66 @@
 # Dating App API
 
-Simple .NET API for a dating app with JWT auth, profiles, likes/matches, photos, messages, hobbies, and admin tools.
+Small .NET API for a dating app.  
+It has auth, profiles, likes, matches, messages, photos, hobbies, and subscription tiers.
 
-## Quick Start
+## Run It
 
 ```bash
 dotnet restore
 dotnet run
 ```
 
-Default URLs:
-- `http://localhost:5000`
-- `https://localhost:5001`
+- API: `http://localhost:5000`
+- Swagger: `http://localhost:5000/swagger`
 
-Swagger:
-- `http://localhost:5000/swagger`
+## What It Does
 
-## Main Features
-
-- Register / login with JWT
-- Profile update (bio, knownAs, city, country, jobTitle, hobbies)
-- Discovery with filters (age, gender, paging, order)
-- **Subscriptions** — Free / Plus / Premium (`GET /api/subscriptions/plans`). Plus & Premium: **unlimited likes**; Plus & Premium: **`GET /api/users/likes?predicate=likedby`**; Premium: stronger **discovery ordering**. `POST /api/subscriptions/subscribe` sets plan + end date (demo — no payment).
-- Likes + matches (Free: max **20 new likes per UTC day**, **429** when over; paid tiers with unlimited likes skip the cap)
-- Each like can record **which of the target’s photos** was shown (`photoId` in body, or defaults to their main photo)
-- Messages (inbox/outbox/unread, thread, read, delete)
-- Photo upload / delete / set-main
+- JWT login/register
+- Profile edit (`knownAs`, bio, city, country, `jobTitle`, hobbies)
+- Discovery feed with filters + paging
+- Likes + matches
+- Messaging (inbox/outbox/thread/read/delete)
+- Photo upload + set main + delete
 - Account delete
-- `UserDto.subscription` on login/register/profile-style responses — plan name, feature flags, paid expiry
 
-## Config
+## Subscriptions
 
-Set these in `appsettings.json` / `appsettings.Development.json`:
+Three plans are built in:
 
-- `ConnectionStrings:DefaultConnection`
-- `TokenKey` (for HMAC-SHA512, keep it 64+ chars)
-- `AdminUserNames` (comma-separated, optional)
+- **Free**: up to 20 new likes per UTC day
+- **Plus**: unlimited likes + can see who liked you
+- **Premium**: everything in Plus + boosted discovery ranking
 
-Admin notes:
-- In Development, `GET /api/users/all` is available to any authenticated user.
-- In non-Development environments, it requires Admin role.
+Plan endpoints:
 
-## Important Endpoints
+- `GET /api/subscriptions/plans`
+- `GET /api/subscriptions/me` (auth)
+- `POST /api/subscriptions/subscribe` (auth)
+  - Example body: `{ "planId": 2, "durationDays": 30 }`
+
+Notes:
+
+- Like limit applies only to Free users.
+- `GET /api/users/likes?predicate=likedby` requires Plus/Premium.
+
+## Useful Endpoints
 
 Public:
+
 - `POST /api/account/register`
 - `POST /api/account/login`
-- `GET /api/subscriptions/plans` — catalog (prices + feature flags)
+- `GET /api/subscriptions/plans`
 
-Protected (Bearer token required):
+Auth required:
+
 - `GET /api/users/discovery`
 - `GET /api/users/{username}`
 - `PUT /api/users`
 - `GET /api/users/hobbies`
 - `GET /api/users/matches`
-- `GET /api/users/likes?predicate=liked|likedby` — returns `{ member, likedPhoto }[]`; **`likedby` needs Plus/Premium** (403 Free). `predicate=liked` is allowed on Free.
-- `GET /api/subscriptions/me` — current tier + expiry + feature flags
-- `POST /api/subscriptions/subscribe` — body `{ "planId": 2|3, "durationDays": 30 }` (extends from current end if still active)
-- `GET /api/users/all` (rules above)
-- `POST /api/likes/{targetUserId}` — optional body `{ "photoId": <int> }` (must be one of that user’s photos); empty body OK
+- `GET /api/users/likes?predicate=liked|likedby`
+- `POST /api/likes/{targetUserId}`
+  - Optional body: `{ "photoId": 5 }` (photo must belong to target user)
 - `POST /api/messages`
 - `GET /api/messages`
 - `GET /api/messages/thread/{recipientId}`
@@ -69,31 +71,20 @@ Protected (Bearer token required):
 - `DELETE /api/photos/{id}`
 - `DELETE /api/account`
 
-## Minimal cURL Flow
+Admin/dev note:
 
-```bash
-# Register
-curl -X POST http://localhost:5000/api/account/register \
-  -H "Content-Type: application/json" \
-  -d "{\"userName\":\"test1\",\"email\":\"test1@test.com\",\"password\":\"Test123A\",\"gender\":\"male\",\"lookingFor\":\"any\",\"dateOfBirth\":\"1995-01-01\"}"
+- `GET /api/users/all` is open to any authenticated user in Development.
+- In non-Development environments, it needs Admin role.
 
-# Login
-curl -X POST http://localhost:5000/api/account/login \
-  -H "Content-Type: application/json" \
-  -d "{\"userName\":\"test1\",\"password\":\"Test123A\"}"
+## Config
 
-# Use returned token
-curl -X GET http://localhost:5000/api/users/discovery \
-  -H "Authorization: Bearer TOKEN"
+Set in `appsettings.json` / `appsettings.Development.json`:
 
-# Like someone, recording which of their photos you saw (optional)
-curl -X POST http://localhost:5000/api/likes/2 \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"photoId\":5}"
-```
+- `ConnectionStrings:DefaultConnection`
+- `TokenKey` (64+ chars)
+- `AdminUserNames` (optional, comma-separated)
 
-## Migrations
+## EF Migrations
 
 ```bash
 dotnet ef migrations add MigrationName
