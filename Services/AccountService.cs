@@ -4,7 +4,7 @@ using API.Models.Dto;
 
 namespace API.Services;
 
-public class AccountService(IUserRepository userRepo, ITokenService tokenService) : IAccountService
+public class AccountService(IUserRepository userRepo, ITokenService tokenService, ISubscriptionService subscriptionService) : IAccountService
 {
     public async Task<(UserDto? User, string? Token)?> RegisterAsync(RegisterDto dto, CancellationToken ct = default)
     {
@@ -62,6 +62,8 @@ public class AccountService(IUserRepository userRepo, ITokenService tokenService
         userRepo.Update(user);
         await userRepo.SaveAllAsync(ct);
 
+        await subscriptionService.ReconcileUserAsync(user.Id, ct);
+
         return (MapToUserDto(user), tokenService.CreateToken(user));
     }
 
@@ -98,7 +100,8 @@ public class AccountService(IUserRepository userRepo, ITokenService tokenService
             .Where(uh => uh.Hobby != null)
             .Select(uh => new HobbyDto { Id = uh.HobbyId, Name = uh.Hobby.Name })
             .OrderBy(h => h.Name)
-            .ToList()
+            .ToList(),
+        Subscription = SubscriptionEntitlements.ToSummary(user)
         };
     }
 
