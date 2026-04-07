@@ -9,4 +9,9 @@ public record SubscribeDto
 
     [Range(1, 3650)]
     public int DurationDays { get; init; } = 30;
+
+    public bool AutoRenew { get; init; } = true;
+
+    [Range(1, 3650)]
+    public int RenewalDays { get; init; } = 30;
 }

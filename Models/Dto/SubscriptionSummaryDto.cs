@@ -9,4 +9,6 @@ public record SubscriptionSummaryDto
     public bool PriorityInDiscovery { get; init; }
     public DateTime? SubscriptionExpiresUtc { get; init; }
     public bool IsPaidPlanActive { get; init; }
+    public bool AutoRenew { get; init; }
+    public int RenewalDays { get; init; }
 }
