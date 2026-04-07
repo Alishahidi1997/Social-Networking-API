@@ -37,4 +37,26 @@ public class SubscriptionsController(ISubscriptionService subscriptionService) :
 
         return NoContent();
     }
+
+    [HttpPost("cancel")]
+    [Authorize]
+    public async Task<ActionResult> Cancel(CancellationToken ct)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!await subscriptionService.CancelAsync(userId, ct))
+            return BadRequest("Could not cancel subscription");
+
+        return NoContent();
+    }
+
+    [HttpPost("auto-renew")]
+    [Authorize]
+    public async Task<ActionResult> SetAutoRenew([FromBody] SubscriptionAutoRenewDto dto, CancellationToken ct)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (!await subscriptionService.SetAutoRenewAsync(userId, dto.Enabled, ct))
+            return BadRequest("Could not update auto renew setting");
+
+        return NoContent();
+    }
 }

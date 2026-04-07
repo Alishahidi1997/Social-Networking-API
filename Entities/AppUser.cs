@@ -21,6 +21,8 @@ public class AppUser
     public int SubscriptionPlanId { get; set; } = 1;
     public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
     public DateTime? SubscriptionEndsUtc { get; set; }
+    public bool SubscriptionAutoRenew { get; set; } = true;
+    public int SubscriptionRenewalDays { get; set; } = 30;
     public int DiscoveryBoostCached { get; set; }
 
     public ICollection<Photo> Photos { get; set; } = [];
