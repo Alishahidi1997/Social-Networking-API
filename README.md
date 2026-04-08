@@ -37,7 +37,11 @@ Plan endpoints:
 - `GET /api/subscriptions/plans`
 - `GET /api/subscriptions/me` (auth)
 - `POST /api/subscriptions/subscribe` (auth)
-  - Example body: `{ "planId": 2, "durationDays": 30 }`
+  - Example body: `{ "planId": 2, "durationDays": 30, "autoRenew": true, "renewalDays": 30 }`
+- `POST /api/subscriptions/auto-renew` (auth)
+  - Body: `{ "enabled": true }`
+- `POST /api/subscriptions/cancel` (auth)
+  - Cancels renewal; plan stays active until current expiry
 
 Notes:
 

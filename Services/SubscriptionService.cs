@@ -23,6 +23,7 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
 
     public async Task<SubscriptionSummaryDto?> GetMySummaryAsync(int userId, CancellationToken ct = default)
     {
+        await ReconcileUserAsync(userId, ct);
         var user = await userRepo.GetUserByIdAsync(userId, ct);
         return user == null ? null : SubscriptionEntitlements.ToSummary(user);
     }
@@ -47,6 +48,8 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
 
         user.SubscriptionPlanId = plan.Id;
         user.SubscriptionEndsUtc = baseLine.AddDays(dto.DurationDays);
+        user.SubscriptionAutoRenew = dto.AutoRenew;
+        user.SubscriptionRenewalDays = dto.RenewalDays;
 
         userRepo.Update(user);
         if (!await userRepo.SaveAllAsync(ct))
@@ -56,10 +59,49 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
         return true;
     }
 
+    public async Task<bool> CancelAsync(int userId, CancellationToken ct = default)
+    {
+        var user = await userRepo.GetUserByIdAsync(userId, ct);
+        if (user == null) return false;
+        if (user.SubscriptionPlanId == SubscriptionEntitlements.FreePlanId) return true;
+
+        user.SubscriptionAutoRenew = false;
+        userRepo.Update(user);
+        return await userRepo.SaveAllAsync(ct);
+    }
+
+    public async Task<bool> SetAutoRenewAsync(int userId, bool enabled, CancellationToken ct = default)
+    {
+        var user = await userRepo.GetUserByIdAsync(userId, ct);
+        if (user == null) return false;
+        if (user.SubscriptionPlanId == SubscriptionEntitlements.FreePlanId) return false;
+
+        user.SubscriptionAutoRenew = enabled;
+        userRepo.Update(user);
+        return await userRepo.SaveAllAsync(ct);
+    }
+
     public async Task ReconcileUserAsync(int userId, CancellationToken ct = default)
     {
         var user = await userRepo.GetUserByIdAsync(userId, ct);
         if (user == null) return;
+
+        if (user.SubscriptionPlanId > SubscriptionEntitlements.FreePlanId &&
+            user.SubscriptionEndsUtc.HasValue &&
+            user.SubscriptionEndsUtc.Value <= DateTime.UtcNow)
+        {
+            if (user.SubscriptionAutoRenew)
+            {
+                var renewal = Math.Max(user.SubscriptionRenewalDays, 1);
+                user.SubscriptionEndsUtc = DateTime.UtcNow.AddDays(renewal);
+            }
+            else
+            {
+                user.SubscriptionPlanId = SubscriptionEntitlements.FreePlanId;
+                user.SubscriptionEndsUtc = null;
+                user.SubscriptionRenewalDays = 30;
+            }
+        }
 
         ApplyDiscoveryBoost(user);
         userRepo.Update(user);

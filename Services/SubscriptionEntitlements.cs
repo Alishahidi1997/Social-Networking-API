@@ -11,7 +11,9 @@ public static class SubscriptionEntitlements
     public static bool PaidSubscriptionIsActive(AppUser user)
     {
         if (user.SubscriptionPlanId <= FreePlanId) return false;
-        return user.SubscriptionEndsUtc == null || user.SubscriptionEndsUtc > DateTime.UtcNow;
+        if (user.SubscriptionEndsUtc == null) return true;
+        if (user.SubscriptionEndsUtc > DateTime.UtcNow) return true;
+        return user.SubscriptionAutoRenew;
     }
 
     public static bool HasUnlimitedLikes(AppUser user)
@@ -48,7 +50,9 @@ public static class SubscriptionEntitlements
                 SeeWhoLikedYou = false,
                 PriorityInDiscovery = false,
                 SubscriptionExpiresUtc = null,
-                IsPaidPlanActive = false
+                IsPaidPlanActive = false,
+                AutoRenew = false,
+                RenewalDays = 0
             };
         }
 
@@ -62,7 +66,9 @@ public static class SubscriptionEntitlements
                 SeeWhoLikedYou = plan.SeeWhoLikedYou,
                 PriorityInDiscovery = plan.PriorityInDiscovery,
                 SubscriptionExpiresUtc = null,
-                IsPaidPlanActive = false
+                IsPaidPlanActive = false,
+                AutoRenew = false,
+                RenewalDays = 0
             };
         }
 
@@ -77,7 +83,9 @@ public static class SubscriptionEntitlements
                 SeeWhoLikedYou = false,
                 PriorityInDiscovery = false,
                 SubscriptionExpiresUtc = null,
-                IsPaidPlanActive = false
+                IsPaidPlanActive = false,
+                AutoRenew = false,
+                RenewalDays = 0
             };
         }
 
@@ -89,7 +97,9 @@ public static class SubscriptionEntitlements
             SeeWhoLikedYou = plan.SeeWhoLikedYou,
             PriorityInDiscovery = plan.PriorityInDiscovery,
             SubscriptionExpiresUtc = user.SubscriptionEndsUtc,
-            IsPaidPlanActive = true
+            IsPaidPlanActive = true,
+            AutoRenew = user.SubscriptionAutoRenew,
+            RenewalDays = user.SubscriptionRenewalDays
         };
     }
 }
