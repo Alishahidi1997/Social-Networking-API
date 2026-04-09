@@ -100,6 +100,7 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
                 user.SubscriptionPlanId = SubscriptionEntitlements.FreePlanId;
                 user.SubscriptionEndsUtc = null;
                 user.SubscriptionRenewalDays = 30;
+                user.SubscriptionAutoRenew = true;
             }
         }
 

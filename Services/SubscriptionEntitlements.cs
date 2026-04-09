@@ -12,8 +12,7 @@ public static class SubscriptionEntitlements
     {
         if (user.SubscriptionPlanId <= FreePlanId) return false;
         if (user.SubscriptionEndsUtc == null) return true;
-        if (user.SubscriptionEndsUtc > DateTime.UtcNow) return true;
-        return user.SubscriptionAutoRenew;
+        return user.SubscriptionEndsUtc > DateTime.UtcNow;
     }
 
     public static bool HasUnlimitedLikes(AppUser user)

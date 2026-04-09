@@ -3,7 +3,7 @@ using API.Entities;
 
 namespace API.Services;
 
-public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) : ILikesService
+public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo, ISubscriptionService subscriptionService) : ILikesService
 {
     private const int MaxLikesPerUtcDay = 20;
 
@@ -11,6 +11,8 @@ public class LikesService(ILikesRepository likesRepo, IUserRepository userRepo) 
     {
         if (sourceUserId == targetUserId)
             return LikeAddResult.InvalidTarget;
+
+        await subscriptionService.ReconcileUserAsync(sourceUserId, ct);
 
         var sourceUser = await userRepo.GetUserByIdAsync(sourceUserId, ct);
         if (sourceUser == null)
