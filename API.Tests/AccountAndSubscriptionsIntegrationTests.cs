@@ -61,7 +61,7 @@ public class AccountAndSubscriptionsIntegrationTests : IClassFixture<ApiWebAppli
     }
 
     [Fact]
-    public async Task Free_user_gets_403_on_likedby()
+    public async Task Free_user_gets_403_on_followers_list()
     {
         var name = UniqueName();
         await _client.PostAsJsonAsync("/api/account/register", new RegisterDto
@@ -77,12 +77,15 @@ public class AccountAndSubscriptionsIntegrationTests : IClassFixture<ApiWebAppli
         var token = await LoginAndGetTokenAsync(_client, name, "Aa123456");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var res = await _client.GetAsync("/api/users/likes?predicate=likedby");
-        Assert.Equal(HttpStatusCode.Forbidden, res.StatusCode);
+        var legacy = await _client.GetAsync("/api/users/likes?predicate=likedby");
+        Assert.Equal(HttpStatusCode.Forbidden, legacy.StatusCode);
+
+        var followers = await _client.GetAsync("/api/users/following?list=followers");
+        Assert.Equal(HttpStatusCode.Forbidden, followers.StatusCode);
     }
 
     [Fact]
-    public async Task Subscribe_then_likedby_allowed()
+    public async Task Subscribe_then_followers_list_allowed()
     {
         var name = UniqueName();
         await _client.PostAsJsonAsync("/api/account/register", new RegisterDto
@@ -107,14 +110,14 @@ public class AccountAndSubscriptionsIntegrationTests : IClassFixture<ApiWebAppli
         });
         Assert.Equal(HttpStatusCode.NoContent, sub.StatusCode);
 
-        var likes = await _client.GetAsync("/api/users/likes?predicate=likedby");
-        Assert.Equal(HttpStatusCode.OK, likes.StatusCode);
+        var followers = await _client.GetAsync("/api/users/following?list=followers");
+        Assert.Equal(HttpStatusCode.OK, followers.StatusCode);
 
         var me = await _client.GetAsync("/api/subscriptions/me");
         Assert.Equal(HttpStatusCode.OK, me.StatusCode);
         var summary = await me.Content.ReadFromJsonAsync<SubscriptionSummaryDto>();
         Assert.NotNull(summary);
-        Assert.True(summary.SeeWhoLikedYou);
+        Assert.True(summary.SeeFollowersList);
         Assert.True(summary.IsPaidPlanActive);
     }
 }

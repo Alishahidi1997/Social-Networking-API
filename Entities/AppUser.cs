@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Entities;
 
 public class AppUser
@@ -10,6 +12,10 @@ public class AppUser
     public required string LookingFor { get; set; }
     public string? Bio { get; set; }
     public string? KnownAs { get; set; }
+    [MaxLength(200)]
+    public string? Headline { get; set; }
+    public string? ProfileLinks { get; set; }
+    public bool IsVerified { get; set; }
     public DateOnly DateOfBirth { get; set; }
     public DateTime Created { get; set; } = DateTime.UtcNow;
     public DateTime LastActive { get; set; } = DateTime.UtcNow;
@@ -26,8 +32,9 @@ public class AppUser
     public int DiscoveryBoostCached { get; set; }
 
     public ICollection<Photo> Photos { get; set; } = [];
-    public ICollection<UserLike> LikedUsers { get; set; } = [];
-    public ICollection<UserLike> LikedByUsers { get; set; } = [];
+    public ICollection<UserFollow> Following { get; set; } = [];
+    public ICollection<UserFollow> Followers { get; set; } = [];
+    public ICollection<UserBookmark> Bookmarks { get; set; } = [];
     public ICollection<Message> MessagesSent { get; set; } = [];
     public ICollection<Message> MessagesReceived { get; set; } = [];
     public ICollection<UserHobby> UserHobbies { get; set; } = [];
