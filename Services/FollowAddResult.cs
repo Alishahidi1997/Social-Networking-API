@@ -1,0 +1,10 @@
+namespace API.Services;
+
+public enum FollowAddResult
+{
+    Success,
+    AlreadyFollowing,
+    InvalidTarget,
+    DailyLimitReached,
+    Failed
+}
