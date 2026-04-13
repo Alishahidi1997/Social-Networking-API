@@ -15,9 +15,9 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
             Name = p.Name,
             Description = p.Description,
             MonthlyPriceUsd = p.MonthlyPriceUsd,
-            UnlimitedLikes = p.UnlimitedLikes,
-            SeeWhoLikedYou = p.SeeWhoLikedYou,
-            PriorityInDiscovery = p.PriorityInDiscovery
+            UnlimitedFollows = p.UnlimitedLikes,
+            SeeFollowersList = p.SeeWhoLikedYou,
+            PriorityInFeed = p.PriorityInDiscovery
         }).ToList();
     }
 
@@ -111,6 +111,6 @@ public class SubscriptionService(IUserRepository userRepo, ISubscriptionReposito
 
     private static void ApplyDiscoveryBoost(AppUser user)
     {
-        user.DiscoveryBoostCached = SubscriptionEntitlements.DiscoveryBoostFor(user);
+        user.DiscoveryBoostCached = SubscriptionEntitlements.FeedBoostFor(user);
     }
 }

@@ -15,21 +15,21 @@ public static class SubscriptionEntitlements
         return user.SubscriptionEndsUtc > DateTime.UtcNow;
     }
 
-    public static bool HasUnlimitedLikes(AppUser user)
+    public static bool HasUnlimitedFollows(AppUser user)
     {
         if (user.SubscriptionPlan == null) return false;
         if (!PaidSubscriptionIsActive(user)) return false;
         return user.SubscriptionPlan.UnlimitedLikes;
     }
 
-    public static bool CanSeeWhoLikedYou(AppUser user)
+    public static bool CanSeeFollowersList(AppUser user)
     {
         if (user.SubscriptionPlan == null) return false;
         if (!PaidSubscriptionIsActive(user)) return false;
         return user.SubscriptionPlan.SeeWhoLikedYou;
     }
 
-    public static int DiscoveryBoostFor(AppUser user)
+    public static int FeedBoostFor(AppUser user)
     {
         if (user.SubscriptionPlan == null) return 0;
         if (!PaidSubscriptionIsActive(user)) return 0;
@@ -45,9 +45,9 @@ public static class SubscriptionEntitlements
             {
                 PlanId = FreePlanId,
                 PlanName = "Free",
-                UnlimitedLikes = false,
-                SeeWhoLikedYou = false,
-                PriorityInDiscovery = false,
+                UnlimitedFollows = false,
+                SeeFollowersList = false,
+                PriorityInFeed = false,
                 SubscriptionExpiresUtc = null,
                 IsPaidPlanActive = false,
                 AutoRenew = false,
@@ -61,9 +61,9 @@ public static class SubscriptionEntitlements
             {
                 PlanId = plan.Id,
                 PlanName = plan.Name,
-                UnlimitedLikes = plan.UnlimitedLikes,
-                SeeWhoLikedYou = plan.SeeWhoLikedYou,
-                PriorityInDiscovery = plan.PriorityInDiscovery,
+                UnlimitedFollows = plan.UnlimitedLikes,
+                SeeFollowersList = plan.SeeWhoLikedYou,
+                PriorityInFeed = plan.PriorityInDiscovery,
                 SubscriptionExpiresUtc = null,
                 IsPaidPlanActive = false,
                 AutoRenew = false,
@@ -78,9 +78,9 @@ public static class SubscriptionEntitlements
             {
                 PlanId = FreePlanId,
                 PlanName = "Free",
-                UnlimitedLikes = false,
-                SeeWhoLikedYou = false,
-                PriorityInDiscovery = false,
+                UnlimitedFollows = false,
+                SeeFollowersList = false,
+                PriorityInFeed = false,
                 SubscriptionExpiresUtc = null,
                 IsPaidPlanActive = false,
                 AutoRenew = false,
@@ -92,9 +92,9 @@ public static class SubscriptionEntitlements
         {
             PlanId = plan.Id,
             PlanName = plan.Name,
-            UnlimitedLikes = plan.UnlimitedLikes,
-            SeeWhoLikedYou = plan.SeeWhoLikedYou,
-            PriorityInDiscovery = plan.PriorityInDiscovery,
+            UnlimitedFollows = plan.UnlimitedLikes,
+            SeeFollowersList = plan.SeeWhoLikedYou,
+            PriorityInFeed = plan.PriorityInDiscovery,
             SubscriptionExpiresUtc = user.SubscriptionEndsUtc,
             IsPaidPlanActive = true,
             AutoRenew = user.SubscriptionAutoRenew,

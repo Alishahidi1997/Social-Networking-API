@@ -26,6 +26,8 @@ public class UserService(IUserRepository userRepo) : IUserService
 
         if (dto.KnownAs != null) user.KnownAs = dto.KnownAs;
         if (dto.Bio != null) user.Bio = dto.Bio;
+        if (dto.Headline != null) user.Headline = dto.Headline;
+        if (dto.ProfileLinks != null) user.ProfileLinks = dto.ProfileLinks;
         if (dto.Gender != null) user.Gender = dto.Gender;
         if (dto.LookingFor != null) user.LookingFor = dto.LookingFor;
         if (dto.DateOfBirth.HasValue) user.DateOfBirth = dto.DateOfBirth.Value;
@@ -45,9 +47,9 @@ public class UserService(IUserRepository userRepo) : IUserService
         return await userRepo.SaveAllAsync(ct);
     }
 
-    public async Task<PagedResultDto<UserDto>> GetUsersForDiscoveryAsync(int userId, UserParams userParams, CancellationToken ct = default)
+    public async Task<PagedResultDto<UserDto>> GetFeedAsync(int userId, UserParams userParams, CancellationToken ct = default)
     {
-        var result = await userRepo.GetUsersForDiscoveryAsync(userId, userParams, ct);
+        var result = await userRepo.GetUsersForFeedAsync(userId, userParams, ct);
         var dtos = result.Items.Select(MapToUserDto).ToList();
         return new PagedResultDto<UserDto>(dtos, result.TotalCount, result.PageNumber, result.PageSize);
     }
@@ -64,35 +66,19 @@ public class UserService(IUserRepository userRepo) : IUserService
         return hobbies.Select(h => new HobbyDto { Id = h.Id, Name = h.Name }).ToList();
     }
 
-    public async Task<IEnumerable<LikedMemberDto>> GetLikedUsersAsync(int userId, string predicate, CancellationToken ct = default)
+    public async Task<IEnumerable<FollowListMemberDto>> GetFollowListAsync(int userId, string list, CancellationToken ct = default)
     {
-        var rows = await userRepo.GetLikedUsersAsync(userId, predicate, ct);
-        var peopleILiked = string.Equals(predicate, "liked", StringComparison.OrdinalIgnoreCase);
-        return rows.Select(r => new LikedMemberDto
+        var rows = await userRepo.GetFollowRelationsAsync(userId, list, ct);
+        return rows.Select(r => new FollowListMemberDto
         {
             Member = MapToUserDto(r.Member),
-            LikedPhoto = MapLikedPhoto(r.Member, r.LikedPhoto, peopleILiked)
+            FollowedAtUtc = r.FollowedAtUtc
         });
     }
 
-    /// <param name="fallbackToMemberMain">When true and no photo was stored, use the member's main photo (people I liked). When false (likedby), only return a photo if we stored one — otherwise we'd show the liker's face instead of mine.</param>
-    private static PhotoDto? MapLikedPhoto(AppUser member, Photo? fromLike, bool fallbackToMemberMain)
+    public async Task<IEnumerable<UserDto>> GetConnectionsAsync(int userId, CancellationToken ct = default)
     {
-        if (fromLike != null)
-            return new PhotoDto { Id = fromLike.Id, Url = fromLike.Url, IsMain = fromLike.IsMain };
-
-        if (!fallbackToMemberMain)
-            return null;
-
-        var fallback = member.Photos?.FirstOrDefault(p => p.IsMain) ?? member.Photos?.FirstOrDefault();
-        return fallback == null
-            ? null
-            : new PhotoDto { Id = fallback.Id, Url = fallback.Url, IsMain = fallback.IsMain };
-    }
-
-    public async Task<IEnumerable<UserDto>> GetMatchesAsync(int userId, CancellationToken ct = default)
-    {
-        var users = await userRepo.GetMatchesAsync(userId, ct);
+        var users = await userRepo.GetConnectionsAsync(userId, ct);
         return users.Select(MapToUserDto);
     }
 
@@ -103,6 +89,9 @@ public class UserService(IUserRepository userRepo) : IUserService
         KnownAs = user.KnownAs ?? user.UserName,
         Age = GetAge(user.DateOfBirth),
         Bio = user.Bio,
+        Headline = user.Headline,
+        ProfileLinks = user.ProfileLinks,
+        IsVerified = user.IsVerified,
         Gender = user.Gender,
         LookingFor = user.LookingFor,
         City = user.City,
