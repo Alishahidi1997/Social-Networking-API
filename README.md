@@ -2,7 +2,7 @@
 
 .NET Web API for a social-style app: **JWT auth**, **profiles**, **paged feed**, **follows**, **mutual connections**, **bookmarks**, **direct messages**, **photos**, **hobby interests**, and **subscription tiers**.
 
-See **`PROJECT.md`** for a feature roadmap (posts, notifications, payments, etc.).
+
 
 ## Prerequisites
 
