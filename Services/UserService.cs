@@ -82,6 +82,7 @@ public class UserService(IUserRepository userRepo) : IUserService
     internal static UserDto MapToUserDto(AppUser user) => new()
     {
         Id = user.Id,
+        EmailConfirmed = user.EmailConfirmed,
         UserName = user.UserName,
         KnownAs = user.KnownAs ?? user.UserName,
         Bio = user.Bio,

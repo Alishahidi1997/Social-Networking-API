@@ -7,6 +7,7 @@ public class AppUser
     public int Id { get; set; }
     public required string UserName { get; set; }
     public required string Email { get; set; }
+    public bool EmailConfirmed { get; set; }
     public required string PasswordHash { get; set; }
     public string? Bio { get; set; }
     public string? KnownAs { get; set; }

@@ -3,6 +3,7 @@ namespace API.Models.Dto;
 public record UserDto
 {
     public int Id { get; init; }
+    public bool EmailConfirmed { get; init; }
     public required string UserName { get; init; }
     public required string KnownAs { get; init; }
     public string? Bio { get; init; }

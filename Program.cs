@@ -36,6 +36,14 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=socialapp.db"));
 
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
+builder.Services.AddSingleton<EmailConfirmationTokenService>();
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();

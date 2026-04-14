@@ -30,6 +30,34 @@ public class AccountController(IAccountService accountService) : ControllerBase
         return Ok(new { result.Value.User, Token = result.Value.Token });
     }
 
+    [AllowAnonymous]
+    [HttpPost("confirm-email")]
+    public async Task<ActionResult> ConfirmEmail([FromBody] ConfirmEmailDto dto, CancellationToken ct)
+    {
+        return await accountService.ConfirmEmailAsync(dto.Token, ct) switch
+        {
+            ConfirmEmailResult.Success => NoContent(),
+            ConfirmEmailResult.AlreadyConfirmed => NoContent(),
+            ConfirmEmailResult.InvalidOrExpiredToken => BadRequest("Invalid or expired confirmation token."),
+            ConfirmEmailResult.EmailMismatch => BadRequest("Invalid or expired confirmation token."),
+            _ => BadRequest()
+        };
+    }
+
+    [Authorize]
+    [HttpPost("resend-confirmation")]
+    public async Task<ActionResult> ResendConfirmation(CancellationToken ct)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!int.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        if (!await accountService.ResendConfirmationEmailAsync(userId, ct))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, "Could not send email. Try again later.");
+
+        return NoContent();
+    }
+
     [Authorize]
     [HttpDelete]
     public async Task<ActionResult> DeleteAccount(CancellationToken ct)

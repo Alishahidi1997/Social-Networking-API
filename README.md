@@ -16,7 +16,7 @@ dotnet run
 
 ## What It Does
 
-- JWT login/register
+- JWT login/register with **email confirmation** (signed token, 48h); resend while logged in
 - Profile edit (`knownAs`, bio, headline, profile links, city, country, `jobTitle`, hobbies)
 - Home feed with optional hobby-topic filter + paging (`GET /api/users` or `GET /api/users/feed`)
 - Follow / unfollow, mutual connections, bookmarks
@@ -54,10 +54,12 @@ Public:
 
 - `POST /api/account/register`
 - `POST /api/account/login`
+- `POST /api/account/confirm-email` — body `{ "token": "..." }` (token is in the confirmation email; without SMTP, check server logs)
 - `GET /api/subscriptions/plans`
 
 Auth required:
 
+- `POST /api/account/resend-confirmation` — resend confirmation email if still unverified
 - `GET /api/users` or `GET /api/users/feed` (paged feed)
 - `GET /api/users/{username}`
 - `PUT /api/users`
@@ -86,7 +88,11 @@ Admin/dev note:
 Set in `appsettings.json` / `appsettings.Development.json`:
 
 - `ConnectionStrings:DefaultConnection` (default SQLite file: `socialapp.db`)
-- `TokenKey` (64+ chars)
+- `TokenKey` (64+ chars; also used to sign email confirmation tokens unless `EmailConfirmation:SigningKey` is set)
+- `App:PublicApiBaseUrl` (optional, e.g. `https://localhost:5001` — shown in confirmation emails)
+- `Email:FromAddress`, `Email:FromName`
+- `Smtp:Host` (optional — if set, real SMTP via MailKit; if empty, emails are only logged)
+- `Smtp:Port`, `Smtp:User`, `Smtp:Password`, `Smtp:UseSsl`
 - `AdminUserNames` (optional, comma-separated)
 
 ## Tests

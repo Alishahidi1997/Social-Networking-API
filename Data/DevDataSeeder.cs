@@ -55,6 +55,7 @@ public static class DevDataSeeder
             {
                 UserName = username,
                 Email = $"{username}@example.com",
+                EmailConfirmed = true,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Demo123A"),
                 KnownAs = $"Demo {i}",
                 Bio = "Seeded demo profile",

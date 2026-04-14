@@ -1,4 +1,5 @@
 using API.Data;
+using API.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,10 @@ public sealed class ApiWebApplicationFactory : WebApplicationFactory<Program>, I
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.AddDbContext<AppDbContext>(options =>
                 options.UseSqlite($"Data Source={_dbPath}"));
+
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<CapturingEmailSender>();
+            services.AddSingleton<IEmailSender>(sp => sp.GetRequiredService<CapturingEmailSender>());
         });
     }
 
