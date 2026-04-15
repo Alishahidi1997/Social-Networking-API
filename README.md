@@ -2,7 +2,7 @@
 
 .NET Web API for a social-style app: **JWT auth**, **profiles**, **paged feed**, **follows**, **mutual connections**, **bookmarks**, **direct messages**, **photos**, **hobby interests**, and **subscription tiers**.
 
-See **`PROJECT.md`** for a feature roadmap (posts, notifications, payments, etc.).
+
 
 ## Prerequisites
 
@@ -172,11 +172,3 @@ dotnet ef database update
 
 The host also runs **`Database.MigrateAsync()`** on startup.
 
-## Troubleshooting
-
-- **Build / test fails on file lock** — stop the API process using the project output folder.
-- **New DB file** — default SQLite path is `socialapp.db` in the working directory; change `DefaultConnection` to use another path or share a DB across runs.
-
----
-
-**Suggested commit message:** `docs: expand README with email confirmation testing and config tables`
