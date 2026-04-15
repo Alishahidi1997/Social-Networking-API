@@ -39,6 +39,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddSingleton<EmailConfirmationTokenService>();
+builder.Services.AddSingleton<PasswordResetTokenService>();
 if (!string.IsNullOrWhiteSpace(builder.Configuration["Smtp:Host"]))
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 else

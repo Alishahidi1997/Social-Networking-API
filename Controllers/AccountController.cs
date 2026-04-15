@@ -44,6 +44,27 @@ public class AccountController(IAccountService accountService) : ControllerBase
         };
     }
 
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto, CancellationToken ct)
+    {
+        await accountService.ForgotPasswordAsync(dto.Email, ct);
+        return NoContent();
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto dto, CancellationToken ct)
+    {
+        return await accountService.ResetPasswordAsync(dto.Token, dto.NewPassword, ct) switch
+        {
+            ResetPasswordResult.Success => NoContent(),
+            ResetPasswordResult.InvalidOrExpiredToken => BadRequest("Invalid or expired reset token."),
+            ResetPasswordResult.EmailMismatch => BadRequest("Invalid or expired reset token."),
+            _ => BadRequest()
+        };
+    }
+
     [Authorize]
     [HttpPost("resend-confirmation")]
     public async Task<ActionResult> ResendConfirmation(CancellationToken ct)

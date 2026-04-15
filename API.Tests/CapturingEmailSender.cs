@@ -25,6 +25,15 @@ public sealed class CapturingEmailSender : IEmailSender
         return LastBody[(i + marker.Length)..].Trim();
     }
 
+    public string? GetLastResetPasswordToken()
+    {
+        if (LastBody == null) return null;
+        const string marker = "RESET_PASSWORD_TOKEN:";
+        var i = LastBody.IndexOf(marker, StringComparison.Ordinal);
+        if (i < 0) return null;
+        return LastBody[(i + marker.Length)..].Trim();
+    }
+
     public void Clear()
     {
         LastTo = null;

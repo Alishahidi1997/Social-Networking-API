@@ -27,6 +27,7 @@ On first run, **`MigrateAsync()`** applies EF migrations (SQLite file from `Conn
 |------|--------|
 | **Account** | Register / login (JWT). New users get **`emailConfirmed: false`** until they confirm (see below). |
 | **Email confirmation** | Signed token (48h). **`POST /api/account/confirm-email`**, **`POST /api/account/resend-confirmation`** (auth). |
+| **Password reset** | Signed reset token (1h). **`POST /api/account/forgot-password`**, **`POST /api/account/reset-password`**. |
 | **Profile** | `knownAs`, bio, headline, profile links, city, country, job title, hobbies. **`emailConfirmed`** is returned on user payloads. |
 | **Feed** | **`GET /api/users`** or **`GET /api/users/feed`** — paged; optional **`hobbyIds`** (comma-separated); excludes users you already follow. |
 | **Social graph** | Follow / unfollow, connections (mutual follows), following & followers lists (followers list gated by plan). |
@@ -61,6 +62,25 @@ On first run, **`MigrateAsync()`** applies EF migrations (SQLite file from `Conn
 dotnet test API.Tests/API.Tests.csproj --filter "FullyQualifiedName~EmailVerificationIntegrationTests"
 ```
 
+## Password reset
+
+### How it works
+
+1. Call **`POST /api/account/forgot-password`** with `{ "email": "user@example.com" }`.
+2. The API always returns **204** to avoid account enumeration.
+3. Without SMTP, the message body is logged and includes **`RESET_PASSWORD_TOKEN:`**.
+4. Call **`POST /api/account/reset-password`** with:
+
+   `{ "token": "<paste>", "newPassword": "Aa123456" }`
+
+5. On success, the API returns **204** and the previous password no longer works.
+
+### Run only reset tests
+
+```bash
+dotnet test API.Tests/API.Tests.csproj --filter "FullyQualifiedName~PasswordResetIntegrationTests"
+```
+
 ### Test it with a real inbox
 
 Set **`Smtp:Host`** (and port, credentials, SSL) plus **`Email:FromAddress`** in `appsettings` or user secrets. Restart the API, register, and use the token from the email the same way as above.
@@ -90,6 +110,8 @@ Endpoints:
 - `POST /api/account/register`
 - `POST /api/account/login`
 - `POST /api/account/confirm-email` — body `{ "token": "..." }`
+- `POST /api/account/forgot-password` — body `{ "email": "..." }`
+- `POST /api/account/reset-password` — body `{ "token": "...", "newPassword": "..." }`
 - `GET /api/subscriptions/plans`
 
 **Auth (Bearer JWT)**
@@ -119,6 +141,7 @@ Use **`appsettings.json`** / **`appsettings.Development.json`** (or environment 
 | `ConnectionStrings:DefaultConnection` | SQLite (default file `socialapp.db`) |
 | `TokenKey` | JWT signing key (64+ chars). Also used to sign email tokens unless `EmailConfirmation:SigningKey` is set. |
 | `EmailConfirmation:SigningKey` | Optional separate key for email confirmation HMAC. |
+| `PasswordReset:SigningKey` | Optional separate key for password reset HMAC. |
 | `App:PublicApiBaseUrl` | Optional base URL shown in confirmation emails (e.g. `https://localhost:7158`). |
 | `Email:FromAddress`, `Email:FromName` | SMTP sender display. |
 | `Smtp:Host`, `Smtp:Port`, `Smtp:User`, `Smtp:Password`, `Smtp:UseSsl` | If **`Host`** is set, MailKit sends mail; if empty, emails are **log-only**. |

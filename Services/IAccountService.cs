@@ -9,4 +9,6 @@ public interface IAccountService
     Task<bool> DeleteAccountAsync(int userId, CancellationToken ct = default);
     Task<ConfirmEmailResult> ConfirmEmailAsync(string token, CancellationToken ct = default);
     Task<bool> ResendConfirmationEmailAsync(int userId, CancellationToken ct = default);
+    Task ForgotPasswordAsync(string email, CancellationToken ct = default);
+    Task<ResetPasswordResult> ResetPasswordAsync(string token, string newPassword, CancellationToken ct = default);
 }

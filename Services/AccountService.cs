@@ -10,6 +10,7 @@ public class AccountService(
     ISubscriptionService subscriptionService,
     IEmailSender emailSender,
     EmailConfirmationTokenService confirmationTokens,
+    PasswordResetTokenService passwordResetTokens,
     IConfiguration configuration,
     ILogger<AccountService> logger) : IAccountService
 {
@@ -125,6 +126,43 @@ public class AccountService(
         return true;
     }
 
+    public async Task ForgotPasswordAsync(string email, CancellationToken ct = default)
+    {
+        var normalizedEmail = (email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalizedEmail))
+            return;
+
+        var user = await userRepo.GetUserByEmailAsync(normalizedEmail, ct);
+        if (user == null)
+            return;
+
+        try
+        {
+            await SendPasswordResetEmailAsync(user, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not send password reset email to {Email}", normalizedEmail);
+        }
+    }
+
+    public async Task<ResetPasswordResult> ResetPasswordAsync(string token, string newPassword, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(token) || !passwordResetTokens.TryValidate(token, out var userId, out var email, out _))
+            return ResetPasswordResult.InvalidOrExpiredToken;
+
+        var user = await userRepo.GetUserByIdAsync(userId, ct);
+        if (user == null)
+            return ResetPasswordResult.InvalidOrExpiredToken;
+
+        if (!string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+            return ResetPasswordResult.EmailMismatch;
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        userRepo.Update(user);
+        return await userRepo.SaveAllAsync(ct) ? ResetPasswordResult.Success : ResetPasswordResult.InvalidOrExpiredToken;
+    }
+
     private async Task SendConfirmationEmailAsync(AppUser user, CancellationToken ct)
     {
         var token = confirmationTokens.CreateToken(user.Id, user.Email, user.UserName);
@@ -142,6 +180,27 @@ public class AccountService(
             $"{token}\n\n" +
             "This confirmation expires in 48 hours.\n\n" +
             $"CONFIRMATION_TOKEN:{token}\n";
+
+        await emailSender.SendEmailAsync(user.Email, subject, text, htmlBody: null, ct);
+    }
+
+    private async Task SendPasswordResetEmailAsync(AppUser user, CancellationToken ct)
+    {
+        var token = passwordResetTokens.CreateToken(user.Id, user.Email, user.UserName);
+        var apiBase = (configuration["App:PublicApiBaseUrl"] ?? "").TrimEnd('/');
+        var subject = "Reset your password";
+        var resetPath = string.IsNullOrEmpty(apiBase)
+            ? "(your API base URL)/api/account/reset-password"
+            : $"{apiBase}/api/account/reset-password";
+        var text =
+            $"Hi {user.KnownAs ?? user.UserName},\n\n" +
+            "Reset your password by sending a POST request to:\n" +
+            $"{resetPath}\n" +
+            "with JSON body containing the token (property name: \"token\") and your new password (property name: \"newPassword\").\n\n" +
+            "Token (copy the entire line after the colon):\n\n" +
+            $"{token}\n\n" +
+            "This reset token expires in 1 hour.\n\n" +
+            $"RESET_PASSWORD_TOKEN:{token}\n";
 
         await emailSender.SendEmailAsync(user.Email, subject, text, htmlBody: null, ct);
     }
