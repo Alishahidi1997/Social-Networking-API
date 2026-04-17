@@ -60,6 +60,12 @@ public class UserRepository(AppDbContext context) : IUserRepository
             .ToListAsync(ct);
         query = query.Where(u => !followingIds.Contains(u.Id));
 
+        query = query.Where(u =>
+            !context.UserBlocks.Any(b =>
+                (b.BlockerId == userId && b.BlockedId == u.Id) ||
+                (b.BlockerId == u.Id && b.BlockedId == userId)) &&
+            !context.UserMutes.Any(m => m.MuterId == userId && m.MutedId == u.Id));
+
         query = userParams.OrderBy.ToLowerInvariant() switch
         {
             "created" => query.OrderByDescending(u => u.FeedBoostCached).ThenByDescending(u => u.Created),
@@ -102,6 +108,9 @@ public class UserRepository(AppDbContext context) : IUserRepository
     {
         var rows = await context.UserFollows
             .Where(f => f.FollowerId == userId)
+            .Where(f => !context.UserBlocks.Any(b =>
+                (b.BlockerId == userId && b.BlockedId == f.FollowingId) ||
+                (b.BlockerId == f.FollowingId && b.BlockedId == userId)))
             .Include(f => f.Following!).ThenInclude(u => u.SubscriptionPlan)
             .Include(f => f.Following!).ThenInclude(u => u.Photos)
             .Include(f => f.Following!).ThenInclude(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
@@ -116,6 +125,9 @@ public class UserRepository(AppDbContext context) : IUserRepository
     {
         var rows = await context.UserFollows
             .Where(f => f.FollowingId == userId)
+            .Where(f => !context.UserBlocks.Any(b =>
+                (b.BlockerId == userId && b.BlockedId == f.FollowerId) ||
+                (b.BlockerId == f.FollowerId && b.BlockedId == userId)))
             .Include(f => f.Follower!).ThenInclude(u => u.SubscriptionPlan)
             .Include(f => f.Follower!).ThenInclude(u => u.Photos)
             .Include(f => f.Follower!).ThenInclude(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
@@ -138,7 +150,10 @@ public class UserRepository(AppDbContext context) : IUserRepository
             .Include(u => u.Photos)
             .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
             .Where(u => followingIds.Contains(u.Id) &&
-                        context.UserFollows.Any(f => f.FollowerId == u.Id && f.FollowingId == userId))
+                        context.UserFollows.Any(f => f.FollowerId == u.Id && f.FollowingId == userId) &&
+                        !context.UserBlocks.Any(b =>
+                            (b.BlockerId == userId && b.BlockedId == u.Id) ||
+                            (b.BlockerId == u.Id && b.BlockedId == userId)))
             .ToListAsync(ct);
     }
 

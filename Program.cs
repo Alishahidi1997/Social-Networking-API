@@ -46,6 +46,7 @@ else
     builder.Services.AddSingleton<IEmailSender, LoggingEmailSender>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IUserModerationRepository, UserModerationRepository>();
 builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
@@ -54,6 +55,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserModerationService, UserModerationService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
