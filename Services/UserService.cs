@@ -55,6 +55,13 @@ public class UserService(IUserRepository userRepo, IUserModerationRepository mod
         return new PagedResultDto<UserDto>(dtos, result.TotalCount, result.PageNumber, result.PageSize);
     }
 
+    public async Task<PagedResultDto<UserDto>> SearchUsersAsync(int userId, string? q, UserParams userParams, CancellationToken ct = default)
+    {
+        var result = await userRepo.SearchUsersAsync(userId, q, userParams, ct);
+        var dtos = result.Items.Select(MapToUserDto).ToList();
+        return new PagedResultDto<UserDto>(dtos, result.TotalCount, result.PageNumber, result.PageSize);
+    }
+
     public async Task<IEnumerable<UserDto>> GetAllUsersAsync(CancellationToken ct = default)
     {
         var users = await userRepo.GetUsersAsync(ct);

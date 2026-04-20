@@ -21,6 +21,24 @@ public class UsersController(IUserService userService, ISubscriptionService subs
     public async Task<ActionResult<PagedResultDto<UserDto>>> GetFeed([FromQuery] UserParams userParams, CancellationToken ct) =>
         Ok(await userService.GetFeedAsync(UserId, userParams, ct));
 
+    [HttpGet("search")]
+    public async Task<ActionResult<PagedResultDto<UserDto>>> SearchUsers(
+        [FromQuery] string? q,
+        [FromQuery] string? hobbyIds,
+        [FromQuery(Name = "page")] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var userParams = new UserParams
+        {
+            PageNumber = Math.Max(1, page),
+            PageSize = pageSize,
+            HobbyIds = hobbyIds
+        };
+
+        return Ok(await userService.SearchUsersAsync(UserId, q, userParams, ct));
+    }
+
     [HttpGet("hobbies")]
     public async Task<ActionResult<IReadOnlyList<HobbyDto>>> GetHobbies(CancellationToken ct) =>
         Ok(await userService.GetHobbyOptionsAsync(ct));

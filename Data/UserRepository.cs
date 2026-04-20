@@ -81,6 +81,44 @@ public class UserRepository(AppDbContext context) : IUserRepository
         return new PagedResultDto<AppUser>(items, totalCount, userParams.PageNumber, userParams.PageSize);
     }
 
+    public async Task<PagedResultDto<AppUser>> SearchUsersAsync(int userId, string? q, UserParams userParams, CancellationToken ct = default)
+    {
+        var query = context.Users
+            .Include(u => u.SubscriptionPlan)
+            .Include(u => u.Photos)
+            .Include(u => u.UserHobbies).ThenInclude(uh => uh.Hobby)
+            .Where(u => u.Id != userId);
+
+        var term = (q ?? "").Trim();
+        if (!string.IsNullOrWhiteSpace(term))
+        {
+            var lower = term.ToLowerInvariant();
+            query = query.Where(u =>
+                u.UserName.ToLower().Contains(lower) ||
+                (u.KnownAs != null && u.KnownAs.ToLower().Contains(lower)) ||
+                (u.Headline != null && u.Headline.ToLower().Contains(lower)));
+        }
+
+        var hobbyIds = ParseHobbyIds(userParams.HobbyIds);
+        if (hobbyIds.Count > 0)
+            query = query.Where(u => u.UserHobbies.Any(uh => hobbyIds.Contains(uh.HobbyId)));
+
+        // Blocked users are hidden in both directions from search results.
+        query = query.Where(u => !context.UserBlocks.Any(b =>
+            (b.BlockerId == userId && b.BlockedId == u.Id) ||
+            (b.BlockerId == u.Id && b.BlockedId == userId)));
+
+        query = query.OrderByDescending(u => u.LastActive).ThenBy(u => u.UserName);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((userParams.PageNumber - 1) * userParams.PageSize)
+            .Take(userParams.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResultDto<AppUser>(items, totalCount, userParams.PageNumber, userParams.PageSize);
+    }
+
     private static List<int> ParseHobbyIds(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return [];

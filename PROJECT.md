@@ -13,7 +13,7 @@ This document turns the social API from a **people graph + DMs + media** foundat
 | **Email verification** | Reduce fake accounts | **Done:** `EmailConfirmed` on user, HMAC-signed token (48h), `POST /api/account/confirm-email`, `POST /api/account/resend-confirmation` (auth). Logging sender when `Smtp:Host` empty; MailKit when configured. | Optional: `EmailConfirmation:SigningKey`, `App:PublicApiBaseUrl` |
 | **Password reset** | Standard account recovery | **Done:** `POST /api/account/forgot-password` + `POST /api/account/reset-password`, HMAC-signed reset token (1h), non-enumerating forgot flow | Same mail infra as above; optional `PasswordReset:SigningKey` |
 | **Rate limiting** | Abuse resistance | ASP.NET rate limiter on register, login, follow, message | Middleware / policies |
-| **Block & mute** | Safety + feed quality | `UserBlock` (hard), optional `UserMute` (soft); filter blocked users from feed, DMs, follower lists | Small migrations; touch `UserRepository`, message send |
+| **Block & mute** | Safety + feed quality | **Done:** `UserBlock` + `UserMute` tables; `POST/DELETE /api/block/{userId}`, `POST/DELETE /api/mute/{userId}`; block removes mutual follows + mutes between users; feed excludes block (either way) + mute (you muted them); follow/DM/thread/inbox/outbox filtered on block; profile `GET /api/users/{username}` returns 404 when blocked pair | Migration `AddUserBlockAndUserMute` |
 
 **Exit criteria:** New users can verify email; resets work; obvious spam paths throttled; blocked users cannot interact.
 
