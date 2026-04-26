@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; } = null!;
     public DbSet<UserBlock> UserBlocks { get; set; } = null!;
     public DbSet<UserMute> UserMutes { get; set; } = null!;
+    public DbSet<Post> Posts { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -27,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         ConfigureUserHobbies(builder);
         ConfigureUserBlocks(builder);
         ConfigureUserMutes(builder);
+        ConfigurePosts(builder);
         ConfigureUserIndexes(builder);
 
         builder.Entity<Hobby>().HasData(
@@ -198,5 +200,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         builder.Entity<AppUser>()
             .HasIndex(u => u.Email)
             .IsUnique();
+    }
+
+    private static void ConfigurePosts(ModelBuilder builder)
+    {
+        builder.Entity<Post>()
+            .HasOne(p => p.Author)
+            .WithMany(u => u.Posts)
+            .HasForeignKey(p => p.AuthorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Post>()
+            .Property(p => p.Visibility)
+            .HasConversion<string>()
+            .HasMaxLength(24);
+
+        builder.Entity<Post>()
+            .HasIndex(p => p.CreatedUtc);
+
+        builder.Entity<Post>()
+            .HasIndex(p => p.AuthorId);
     }
 }

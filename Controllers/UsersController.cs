@@ -9,7 +9,11 @@ namespace API.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class UsersController(IUserService userService, ISubscriptionService subscriptionService, IWebHostEnvironment env) : ControllerBase
+public class UsersController(
+    IUserService userService,
+    ISubscriptionService subscriptionService,
+    IPostService postService,
+    IWebHostEnvironment env) : ControllerBase
 {
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -96,6 +100,14 @@ public class UsersController(IUserService userService, ISubscriptionService subs
         var user = await userService.GetUserAsync(username, UserId, ct);
         return user == null ? NotFound() : Ok(user);
     }
+
+    [HttpGet("{username}/posts")]
+    public async Task<ActionResult<PagedResultDto<PostDto>>> GetUserTimeline(
+        string username,
+        [FromQuery(Name = "page")] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default) =>
+        Ok(await postService.GetUserTimelineAsync(UserId, username, page, pageSize, ct));
 
     [HttpPut]
     public async Task<ActionResult> UpdateMember([FromBody] MemberUpdateDto dto, CancellationToken ct)

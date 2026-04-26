@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using API.Entities;
 using API.Models.Dto;
 using Xunit;
 
@@ -30,6 +31,23 @@ public class SocialProfileAndFollowIntegrationTests : IClassFixture<ApiWebApplic
         login.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
         return doc.RootElement.GetProperty("token").GetString();
+    }
+
+    private static async Task<(HttpStatusCode StatusCode, int UserId)> RegisterAndGetIdAsync(HttpClient client, string userName)
+    {
+        var reg = await client.PostAsJsonAsync("/api/account/register", new RegisterDto
+        {
+            UserName = userName,
+            Email = $"{userName}@test.com",
+            Password = "Aa123456"
+        });
+
+        if (reg.StatusCode != HttpStatusCode.OK)
+            return (reg.StatusCode, 0);
+
+        using var doc = JsonDocument.Parse(await reg.Content.ReadAsStringAsync());
+        var userId = doc.RootElement.GetProperty("user").GetProperty("id").GetInt32();
+        return (reg.StatusCode, userId);
     }
 
     [Fact]
@@ -302,5 +320,223 @@ public class SocialProfileAndFollowIntegrationTests : IClassFixture<ApiWebApplic
         Assert.True(topIndex >= 0);
         Assert.True(lowIndex >= 0);
         Assert.True(topIndex < lowIndex, "Expected top candidate to rank ahead of low candidate.");
+    }
+
+    [Fact]
+    public async Task Tags_discovery_returns_hobby_tags_and_users_by_tag()
+    {
+        var viewer = UniqueName();
+        var target = UniqueName();
+        var other = UniqueName();
+
+        var regViewer = await _client.PostAsJsonAsync("/api/account/register", new RegisterDto
+        {
+            UserName = viewer,
+            Email = $"{viewer}@test.com",
+            Password = "Aa123456"
+        });
+        var regTarget = await _client.PostAsJsonAsync("/api/account/register", new RegisterDto
+        {
+            UserName = target,
+            Email = $"{target}@test.com",
+            Password = "Aa123456"
+        });
+        var regOther = await _client.PostAsJsonAsync("/api/account/register", new RegisterDto
+        {
+            UserName = other,
+            Email = $"{other}@test.com",
+            Password = "Aa123456"
+        });
+
+        Assert.Equal(HttpStatusCode.OK, regViewer.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, regTarget.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, regOther.StatusCode);
+
+        var viewerToken = await LoginAndGetTokenAsync(_client, viewer, "Aa123456");
+        var targetToken = await LoginAndGetTokenAsync(_client, target, "Aa123456");
+        var otherToken = await LoginAndGetTokenAsync(_client, other, "Aa123456");
+        Assert.False(string.IsNullOrWhiteSpace(viewerToken));
+        Assert.False(string.IsNullOrWhiteSpace(targetToken));
+        Assert.False(string.IsNullOrWhiteSpace(otherToken));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", targetToken);
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.PutAsJsonAsync("/api/users", new MemberUpdateDto { HobbyIds = [1] })).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.PutAsJsonAsync("/api/users", new MemberUpdateDto { HobbyIds = [2] })).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", viewerToken);
+
+        var tagsRes = await _client.GetAsync("/api/tags?limit=20");
+        Assert.Equal(HttpStatusCode.OK, tagsRes.StatusCode);
+        using (var tagsDoc = JsonDocument.Parse(await tagsRes.Content.ReadAsStringAsync()))
+        {
+            var tags = tagsDoc.RootElement.EnumerateArray().Select(x => x.GetProperty("tag").GetString()).ToList();
+            Assert.Contains("#travel", tags);
+        }
+
+        var byTag = await _client.GetAsync("/api/tags/travel/users?page=1&pageSize=20");
+        Assert.Equal(HttpStatusCode.OK, byTag.StatusCode);
+        using (var usersDoc = JsonDocument.Parse(await byTag.Content.ReadAsStringAsync()))
+        {
+            var names = usersDoc.RootElement.GetProperty("items").EnumerateArray()
+                .Select(x => x.GetProperty("userName").GetString())
+                .ToList();
+            Assert.Contains(target, names);
+            Assert.DoesNotContain(other, names);
+        }
+    }
+
+    [Fact]
+    public async Task Posts_create_update_delete_happy_path_and_permission_failure()
+    {
+        var author = UniqueName();
+        var other = UniqueName();
+
+        var (authorStatus, _) = await RegisterAndGetIdAsync(_client, author);
+        var (otherStatus, _) = await RegisterAndGetIdAsync(_client, other);
+        Assert.Equal(HttpStatusCode.OK, authorStatus);
+        Assert.Equal(HttpStatusCode.OK, otherStatus);
+
+        var authorToken = await LoginAndGetTokenAsync(_client, author, "Aa123456");
+        var otherToken = await LoginAndGetTokenAsync(_client, other, "Aa123456");
+        Assert.False(string.IsNullOrWhiteSpace(authorToken));
+        Assert.False(string.IsNullOrWhiteSpace(otherToken));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
+        var createdRes = await _client.PostAsJsonAsync("/api/posts", new CreatePostDto
+        {
+            Body = "hello timeline",
+            Visibility = PostVisibility.Public
+        });
+        Assert.Equal(HttpStatusCode.OK, createdRes.StatusCode);
+        var created = await createdRes.Content.ReadFromJsonAsync<PostDto>();
+        Assert.NotNull(created);
+        var postId = created.Id;
+
+        var updatedRes = await _client.PutAsJsonAsync($"/api/posts/{postId}", new UpdatePostDto
+        {
+            Body = "edited body",
+            Visibility = PostVisibility.Followers
+        });
+        Assert.Equal(HttpStatusCode.OK, updatedRes.StatusCode);
+        var updated = await updatedRes.Content.ReadFromJsonAsync<PostDto>();
+        Assert.NotNull(updated);
+        Assert.Equal("edited body", updated.Body);
+        Assert.Equal(PostVisibility.Followers, updated.Visibility);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        Assert.Equal(HttpStatusCode.BadRequest, (await _client.DeleteAsync($"/api/posts/{postId}")).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
+        Assert.Equal(HttpStatusCode.NoContent, (await _client.DeleteAsync($"/api/posts/{postId}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Home_timeline_returns_posts_from_followed_users_only()
+    {
+        var viewer = UniqueName();
+        var followed = UniqueName();
+        var notFollowed = UniqueName();
+
+        var (viewerStatus, _) = await RegisterAndGetIdAsync(_client, viewer);
+        var (followedStatus, followedId) = await RegisterAndGetIdAsync(_client, followed);
+        var (notFollowedStatus, _) = await RegisterAndGetIdAsync(_client, notFollowed);
+        Assert.Equal(HttpStatusCode.OK, viewerStatus);
+        Assert.Equal(HttpStatusCode.OK, followedStatus);
+        Assert.Equal(HttpStatusCode.OK, notFollowedStatus);
+
+        var viewerToken = await LoginAndGetTokenAsync(_client, viewer, "Aa123456");
+        var followedToken = await LoginAndGetTokenAsync(_client, followed, "Aa123456");
+        var notFollowedToken = await LoginAndGetTokenAsync(_client, notFollowed, "Aa123456");
+        Assert.False(string.IsNullOrWhiteSpace(viewerToken));
+        Assert.False(string.IsNullOrWhiteSpace(followedToken));
+        Assert.False(string.IsNullOrWhiteSpace(notFollowedToken));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", followedToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/posts", new CreatePostDto
+        {
+            Body = "from followed",
+            Visibility = PostVisibility.Public
+        })).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", notFollowedToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/posts", new CreatePostDto
+        {
+            Body = "from stranger",
+            Visibility = PostVisibility.Public
+        })).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", viewerToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsync($"/api/follow/{followedId}", null)).StatusCode);
+
+        var homeRes = await _client.GetAsync("/api/feed/home?page=1&pageSize=20");
+        Assert.Equal(HttpStatusCode.OK, homeRes.StatusCode);
+        using var doc = JsonDocument.Parse(await homeRes.Content.ReadAsStringAsync());
+        var authors = doc.RootElement.GetProperty("items")
+            .EnumerateArray()
+            .Select(x => x.GetProperty("authorUserName").GetString())
+            .ToList();
+
+        Assert.Contains(followed, authors);
+        Assert.DoesNotContain(notFollowed, authors);
+    }
+
+    [Fact]
+    public async Task User_timeline_hides_followers_only_posts_for_non_followers()
+    {
+        var author = UniqueName();
+        var follower = UniqueName();
+        var stranger = UniqueName();
+
+        var (authorStatus, authorId) = await RegisterAndGetIdAsync(_client, author);
+        var (followerStatus, _) = await RegisterAndGetIdAsync(_client, follower);
+        var (strangerStatus, _) = await RegisterAndGetIdAsync(_client, stranger);
+        Assert.Equal(HttpStatusCode.OK, authorStatus);
+        Assert.Equal(HttpStatusCode.OK, followerStatus);
+        Assert.Equal(HttpStatusCode.OK, strangerStatus);
+
+        var authorToken = await LoginAndGetTokenAsync(_client, author, "Aa123456");
+        var followerToken = await LoginAndGetTokenAsync(_client, follower, "Aa123456");
+        var strangerToken = await LoginAndGetTokenAsync(_client, stranger, "Aa123456");
+        Assert.False(string.IsNullOrWhiteSpace(authorToken));
+        Assert.False(string.IsNullOrWhiteSpace(followerToken));
+        Assert.False(string.IsNullOrWhiteSpace(strangerToken));
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/posts", new CreatePostDto
+        {
+            Body = "public post",
+            Visibility = PostVisibility.Public
+        })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsJsonAsync("/api/posts", new CreatePostDto
+        {
+            Body = "followers only post",
+            Visibility = PostVisibility.Followers
+        })).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", followerToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsync($"/api/follow/{authorId}", null)).StatusCode);
+
+        var followerView = await _client.GetAsync($"/api/users/{author}/posts?page=1&pageSize=20");
+        Assert.Equal(HttpStatusCode.OK, followerView.StatusCode);
+        using (var followerDoc = JsonDocument.Parse(await followerView.Content.ReadAsStringAsync()))
+        {
+            var items = followerDoc.RootElement.GetProperty("items").EnumerateArray().ToList();
+            Assert.Equal(2, items.Count);
+        }
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", strangerToken);
+        var strangerView = await _client.GetAsync($"/api/users/{author}/posts?page=1&pageSize=20");
+        Assert.Equal(HttpStatusCode.OK, strangerView.StatusCode);
+        using (var strangerDoc = JsonDocument.Parse(await strangerView.Content.ReadAsStringAsync()))
+        {
+            var bodies = strangerDoc.RootElement.GetProperty("items")
+                .EnumerateArray()
+                .Select(x => x.GetProperty("body").GetString())
+                .ToList();
+            Assert.Contains("public post", bodies);
+            Assert.DoesNotContain("followers only post", bodies);
+        }
     }
 }
