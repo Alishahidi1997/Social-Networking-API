@@ -94,6 +94,7 @@ builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 builder.Services.AddScoped<IFollowRepository, FollowRepository>();
 builder.Services.AddScoped<IBookmarkRepository, BookmarkRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IPostRepository, PostRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
@@ -102,6 +103,7 @@ builder.Services.AddScoped<IUserModerationService, UserModerationService>();
 builder.Services.AddScoped<IFollowService, FollowService>();
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 
 var tokenKey = builder.Configuration["TokenKey"] ?? throw new InvalidOperationException("TokenKey must be set in appsettings");
